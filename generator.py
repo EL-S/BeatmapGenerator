@@ -31,6 +31,10 @@ pixels_a_ms = pixels_to_bottom/time_until_bottom
 ms_a_frame = 1000/fps
 pixels_a_frame = (pixels_a_ms)
 clock = pygame.time.Clock()
+caught = 0
+total = 0
+score = 0
+base_score = 1000
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -40,6 +44,8 @@ screen = pygame.display.set_mode((width,height), pygame.FULLSCREEN)
 pygame.init()
 pygame.font.init()
 gamefont = pygame.font.SysFont('Comic Sans MS', 130)
+gamefont2 = pygame.font.SysFont('Comic Sans MS', 50)
+gamefont3 = pygame.font.SysFont('Comic Sans MS', 80)
 
 class Note:
     prev_x_value = randint(gamearea_offset+(note_diameter/2),game_width+gamearea_offset-(note_diameter/2))
@@ -89,14 +95,23 @@ def move_notes():
     delete_old_notes(to_be_deleted)
         
 def check_collision(note_x, note_height, note_object):
-    global combo, catcher_x, catcher_width, note_diameter, notes, to_be_deleted, time_ms
+    global combo, catcher_x, catcher_width, note_diameter, notes, to_be_deleted, time_ms, total, caught, score, base_score
     if note_x <= (catcher_x+(catcher_width/2)) and note_x >= (catcher_x-(catcher_width/2)) and note_height >= (catcher_height) and (note_height <= (catcher_height+20)): #(time_ms == note_object.note_time()[0]):
-        combo += 1
+        combo += 1 #caught the note
+        caught += 1
+        total += 1
+        score += base_score
+        base_score = round(base_score * 1.1)
         to_be_deleted.append(note_object)
     elif note_height > height+(note_diameter/2):
         #note offscreen, add to delete queue
+        total += 1
         to_be_deleted.append(note_object)
     else:
+        #missed the note but it is still on the screen
+        #this calls continously
+        #you can't get a combo or a higher score multipler if there is a missed note on screen
+        base_score = 1000
         combo = 0
     #print("combo:",combo)
     
@@ -117,10 +132,23 @@ def check_time():
         create_note(time_ms, relative_time)
         
 def draw_screen():
-    pygame.draw.rect(screen, white, [catcher_x-(catcher_width/2),catcher_y,catcher_width,(height_spacing/2)])
+    if move_boost:
+        catcher_colour = (66,223,255)
+    else:
+        catcher_colour = white
+    pygame.draw.rect(screen, catcher_colour, [catcher_x-(catcher_width/2),catcher_y,catcher_width,(height_spacing/2)])
     if combo > 0:
-        textsurface = gamefont.render(str(combo)+"x", False, (white))
-        screen.blit(textsurface,(0,round(height/20)*17))
+        combo_size = gamefont.size(str(combo))
+        combo_surface = gamefont.render(str(combo), False, (white))
+        screen.blit(combo_surface,(round(catcher_x-(combo_size[0]/2)),round((height/2)-(combo_size[1]/2))))
+    accuracy_size = gamefont2.size(str("%.2f" % ((caught/total)*100))+"%")
+    displacement = width - accuracy_size[0]-41 #41 is the width of the percentage sign
+    accuracy_surface = gamefont2.render(str("%.2f" % ((caught/total)*100))+"%", False, (white))
+    screen.blit(accuracy_surface,(round(displacement),round(height/15)))
+    score_size = gamefont3.size(str(score))
+    score_displacement = width - score_size[0]
+    score_surface = gamefont3.render(str(score), False, (white))
+    screen.blit(score_surface,(round(score_displacement),-(score_size[1]/8)))
     pygame.display.flip()
     
 def move_catcher():
