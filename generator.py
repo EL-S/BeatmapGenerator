@@ -34,7 +34,10 @@ clock = pygame.time.Clock()
 caught = 0
 total = 0
 score = 0
-base_score = 1000
+hit_value = 300
+combo_multiplier = 0
+difficulty_multiplier = 8
+mod_multiplier = 1
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -95,13 +98,14 @@ def move_notes():
     delete_old_notes(to_be_deleted)
         
 def check_collision(note_x, note_height, note_object):
-    global combo, catcher_x, catcher_width, note_diameter, notes, to_be_deleted, time_ms, total, caught, score, base_score
+    global combo, catcher_x, catcher_width, note_diameter, notes, to_be_deleted, time_ms, total, caught, score, hit_value, combo_multiplier, difficulty_multiplier, mod_multiplier
     if note_x <= (catcher_x+(catcher_width/2)) and note_x >= (catcher_x-(catcher_width/2)) and note_height >= (catcher_height) and (note_height <= (catcher_height+20)): #(time_ms == note_object.note_time()[0]):
         combo += 1 #caught the note
         caught += 1
         total += 1
-        score += base_score
-        base_score = round(base_score * 1.1)
+        combo_multiplier = combo-1
+        hit_value = 300
+        score += int(hit_value + (hit_value * ((combo_multiplier * difficulty_multiplier * mod_multiplier) / 25)))
         to_be_deleted.append(note_object)
     elif note_height > height+(note_diameter/2):
         #note offscreen, add to delete queue
@@ -111,7 +115,7 @@ def check_collision(note_x, note_height, note_object):
         #missed the note but it is still on the screen
         #this calls continously
         #you can't get a combo or a higher score multipler if there is a missed note on screen
-        base_score = 1000
+        hit_value = 300
         combo = 0
     #print("combo:",combo)
     
@@ -130,7 +134,7 @@ def check_time():
     relative_time = (time_ms - offset_ms)
     if ((relative_time % timing*time_factor) == 0) and (relative_time >= 0):
         create_note(time_ms, relative_time)
-        
+
 def draw_screen():
     if move_boost:
         catcher_colour = (66,223,255)
@@ -142,7 +146,7 @@ def draw_screen():
         combo_surface = gamefont.render(str(combo), False, (white))
         screen.blit(combo_surface,(round(catcher_x-(combo_size[0]/2)),round((height/2)-(combo_size[1]/2))))
     accuracy_size = gamefont2.size(str("%.2f" % ((caught/total)*100))+"%")
-    displacement = width - accuracy_size[0]-41 #41 is the width of the percentage sign
+    displacement = width - accuracy_size[0]
     accuracy_surface = gamefont2.render(str("%.2f" % ((caught/total)*100))+"%", False, (white))
     screen.blit(accuracy_surface,(round(displacement),round(height/15)))
     score_size = gamefont3.size(str(score))
@@ -153,7 +157,7 @@ def draw_screen():
     
 def move_catcher():
     global catcher_x
-    speed = 1.5
+    speed = 1.33
     multiply_speed = 1
     if move_boost:
         #boost
